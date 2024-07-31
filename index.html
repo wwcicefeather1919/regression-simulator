@@ -1,0 +1,164 @@
+<html><head><base href="https://linearregressionexplorer.streamlit.app/">
+<title>Linear Regression Explorer</title>
+<script src="https://cdn.streamlit.io/1.22.0/streamlit.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.4/d3.min.js"></script>
+<style>
+  body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f6;
+    color: #262730;
+  }
+  .stApp {
+    display: flex;
+    height: 100vh;
+  }
+  .control-panel {
+    flex: 1;
+    padding: 2rem;
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .chart-area {
+    flex: 2;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+  }
+  h1 {
+    color: #0e1117;
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+  }
+  .slider-container {
+    margin-bottom: 2rem;
+  }
+  .slider-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+  .slider {
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+<div class="stApp">
+  <div class="control-panel">
+    <h1>Linear Regression Explorer</h1>
+    <div class="slider-container">
+      <label class="slider-label">Slope (a)</label>
+      <input type="range" id="a-slider" class="slider" min="-5" max="5" step="0.1" value="1">
+      <span id="a-value">1</span>
+    </div>
+    <div class="slider-container">
+      <label class="slider-label">Noise (c)</label>
+      <input type="range" id="c-slider" class="slider" min="0" max="10" step="0.1" value="1">
+      <span id="c-value">1</span>
+    </div>
+    <div class="slider-container">
+      <label class="slider-label">Sample Size (n)</label>
+      <input type="range" id="n-slider" class="slider" min="100" max="1000" step="1" value="500">
+      <span id="n-value">500</span>
+    </div>
+  </div>
+  <div class="chart-area">
+    <div id="chart"></div>
+  </div>
+</div>
+
+<script>
+  // Initialize variables
+  let a = 1, c = 1, n = 500;
+
+  // Helper functions
+  function randn() {
+    return Math.sqrt(-2.0 * Math.log(Math.random())) * Math.cos(2.0 * Math.PI * Math.random());
+  }
+
+  function generateData() {
+    const x = d3.range(n).map(() => Math.random() * 200 - 100);
+    const y = x.map(xi => a * xi + 50 + c * randn());
+    return {x, y};
+  }
+
+  function linearRegression(x, y) {
+    const n = x.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    for (let i = 0; i < n; i++) {
+      sumX += x[i];
+      sumY += y[i];
+      sumXY += x[i] * y[i];
+      sumXX += x[i] * x[i];
+    }
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    return {slope, intercept};
+  }
+
+  function updateChart() {
+    const {x, y} = generateData();
+    const result = linearRegression(x, y);
+
+    const trace1 = {
+      x: x,
+      y: y,
+      mode: 'markers',
+      type: 'scatter',
+      name: 'Data',
+      marker: {color: 'rgba(0,0,255,0.5)'}
+    };
+
+    const xRange = [Math.min(...x), Math.max(...x)];
+    const yPred = xRange.map(xi => result.slope * xi + result.intercept);
+
+    const trace2 = {
+      x: xRange,
+      y: yPred,
+      mode: 'lines',
+      type: 'scatter',
+      name: 'Regression Line',
+      line: {color: 'red', width: 2}
+    };
+
+    const layout = {
+      title: 'Linear Regression',
+      xaxis: {title: 'X'},
+      yaxis: {title: 'Y'},
+      hovermode: 'closest',
+      showlegend: true,
+      legend: {x: 0, y: 1},
+      plot_bgcolor: '#E5ECF6',
+      paper_bgcolor: '#E5ECF6'
+    };
+
+    Plotly.newPlot('chart', [trace1, trace2], layout);
+  }
+
+  // Event listeners for sliders
+  document.getElementById('a-slider').addEventListener('input', function(e) {
+    a = parseFloat(e.target.value);
+    document.getElementById('a-value').textContent = a.toFixed(1);
+    updateChart();
+  });
+
+  document.getElementById('c-slider').addEventListener('input', function(e) {
+    c = parseFloat(e.target.value);
+    document.getElementById('c-value').textContent = c.toFixed(1);
+    updateChart();
+  });
+
+  document.getElementById('n-slider').addEventListener('input', function(e) {
+    n = parseInt(e.target.value);
+    document.getElementById('n-value').textContent = n;
+    updateChart();
+  });
+
+  // Initial chart
+  updateChart();
+</script>
+</body>
+</html>
